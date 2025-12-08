@@ -1,0 +1,174 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id       String @id @default(uuid())
+  name     String
+  email    String @unique
+  password String
+  role     String @default("USER")
+
+  professional Professional?
+  patient      Patient?
+}
+
+model Professional {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  cpf       String?  @unique
+  crf       String?
+  score     Float    @default(0)
+  createdAt DateTime @default(now())
+
+  user         User          @relation(fields: [userId], references: [id])
+  jornadas     Jornada[]
+  escalas      Escala[]
+  atendimentos Atendimento[]
+}
+
+model Patient {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+
+  user         User          @relation(fields: [userId], references: [id])
+  locais       Local[]
+  atendimentos Atendimento[]
+}
+
+model Regime {
+  id             String  @id @default(uuid())
+  nome           String
+  tipo           String // CLT, PJ, AUTONOMO
+  horasMaxDia    Int
+  horasMaxSemana Int
+  permitePlantao Boolean @default(false)
+
+  jornadas Jornada[]
+}
+
+model Jornada {
+  id             String    @id @default(uuid())
+  professionalId String
+  regimeId       String
+  dataInicio     DateTime?
+  dataFim        DateTime?
+  inicio         String? // ex: "08:00"
+  fim            String? // ex: "17:00"
+  intervaloMin   Int? // minutos
+  tipo           String // DISPONIVEL, UTIL, INUTIL
+
+  professional Professional @relation(fields: [professionalId], references: [id])
+  regime       Regime       @relation(fields: [regimeId], references: [id])
+}
+
+model Plantao {
+  id      String   @id @default(uuid())
+  nome    String
+  inicio  DateTime
+  fim     DateTime
+  localId String
+
+  local        Local         @relation(fields: [localId], references: [id])
+  escalas      Escala[]
+  atividades   Atividade[]
+  atendimentos Atendimento[]
+}
+
+model Escala {
+  id             String @id @default(uuid())
+  plantaoId      String
+  professionalId String
+
+  plantao      Plantao      @relation(fields: [plantaoId], references: [id])
+  professional Professional @relation(fields: [professionalId], references: [id])
+}
+
+model Atendimento {
+  id             String    @id @default(uuid())
+  pacienteId     String
+  professionalId String?
+  plantaoId      String?
+  status         String
+  inicioPrevisto DateTime
+  fimPrevisto    DateTime
+  inicioReal     DateTime?
+  fimReal        DateTime?
+  localId        String
+
+  paciente     Patient       @relation(fields: [pacienteId], references: [id])
+  professional Professional? @relation(fields: [professionalId], references: [id])
+  plantao      Plantao?      @relation(fields: [plantaoId], references: [id])
+  local        Local         @relation(fields: [localId], references: [id])
+  atividades   Atividade[]
+  pagamento    Pagamento?
+  deslocamento Deslocamento?
+}
+
+model Atividade {
+  id              String  @id @default(uuid())
+  atendimentoId   String?
+  plantaoId       String?
+  tipo            String
+  estado          String // PENDENTE, EXECUCAO, FINALIZADA, CANCELADA
+  duracaoPrevista Int?
+  duracaoReal     Int? // minutos
+
+  atendimento Atendimento? @relation(fields: [atendimentoId], references: [id])
+  plantao     Plantao?     @relation(fields: [plantaoId], references: [id])
+}
+
+model Local {
+  id        String  @id @default(uuid())
+  nome      String?
+  endereco  String
+  latitude  Float
+  longitude Float
+  tipo      String? // DOMICILIO, INSTITUICAO
+
+  pacientes    Patient[]
+  plantoes     Plantao[]
+  atendimentos Atendimento[]
+}
+
+model Deslocamento {
+  id            String @id @default(uuid())
+  atendimentoId String @unique
+  origemLat     Float
+  origemLon     Float
+  destinoLat    Float
+  destinoLon    Float
+  tempoEstimado Int?
+  tempoReal     Int?
+  distancia     Float?
+
+  atendimento Atendimento @relation(fields: [atendimentoId], references: [id])
+}
+
+model Pagamento {
+  id             String   @id @default(uuid())
+  atendimentoId  String   @unique
+  valorBruto     Float
+  taxaPlataforma Float
+  valorLiquido   Float
+  status         String
+  dataGeracao    DateTime @default(now())
+
+  atendimento Atendimento @relation(fields: [atendimentoId], references: [id])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  entity    String
+  entityId  String
+  action    String
+  userId    String?
+  timestamp DateTime @default(now())
+  payload   Json?
+}
