@@ -1,4 +1,4 @@
-version: "3.8"
+
 
 services:
   db:
@@ -6,7 +6,7 @@ services:
     restart: always
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: 123
       POSTGRES_DB: neri_db
     ports:
       - "5432:5432"
@@ -21,7 +21,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/neri_db
+      - DATABASE_URL=postgresql://postgres:123@db:5432/neri_db
       - JWT_SECRET=troque_por_um_segredo_forte
       - PORT=3000
     depends_on:
