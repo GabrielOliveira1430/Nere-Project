@@ -10,6 +10,7 @@ import plantaoRoutes from "./plantao.routes";
 import escalaRoutes from "./escala.routes";
 import atendimentoRoutes from "./atendimento.routes";
 import checkinRoutes from "./checkin.routes";
+import trackingRoutes from "./tracking.routes";
 
 const router = Router();
 
@@ -23,5 +24,6 @@ router.use("/plantoes", plantaoRoutes);
 router.use("/escalas", escalaRoutes);
 router.use("/atendimentos", atendimentoRoutes);
 router.use("/checkins", checkinRoutes);
+router.use("/tracking", trackingRoutes);
 
 export default router;

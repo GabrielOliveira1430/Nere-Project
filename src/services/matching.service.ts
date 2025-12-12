@@ -1,4 +1,3 @@
-// src/services/matching.service.ts
 import prisma from "../prismaClient";
 
 type Demanda = {
@@ -17,17 +16,16 @@ type MatchResult = {
 
 export class MatchingService {
   async match(demanda: Demanda, top = 5) {
-    const pros: Array<{ score: number | null }> =
-      await prisma.professional.findMany({
-        include: { user: true },
-      });
+    const pros = await prisma.professional.findMany({
+      include: { user: true },
+    });
 
     const results: MatchResult[] = pros
-      .map((p: { score: number | null }) => ({
+      .map((p: any) => ({
         professional: p,
-        score: p.score ?? 0,
+        score: (p.score ?? 0) || 0, // garante number
       }))
-      .sort((a: { score: number }, b: { score: number }) => b.score - a.score)
+      .sort((a, b) => b.score - a.score)
       .slice(0, top);
 
     return results;

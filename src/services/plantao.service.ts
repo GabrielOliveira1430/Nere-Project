@@ -7,11 +7,16 @@ export class PlantaoService {
   }
 
   async get(id: string) {
-    return prisma.plantao.findUnique({ where: { id }, include: { local: true, escalas: true } });
+    return prisma.plantao.findUnique({
+      where: { id },
+      include: { Local: true, escalas: true } // ← corrigido
+    });
   }
 
   async list() {
-    return prisma.plantao.findMany({ include: { local: true } });
+    return prisma.plantao.findMany({
+      include: { Local: true } // ← corrigido
+    });
   }
 
   async update(id: string, data: any) {
