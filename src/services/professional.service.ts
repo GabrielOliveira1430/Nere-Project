@@ -2,7 +2,7 @@
 import prisma from "../prismaClient";
 
 export class ProfessionalService {
-  async create(userId: string, cpf?: string, crf?: string) {
+  async create(userId: number, cpf?: string, crf?: string) {
     return prisma.professional.create({
       data: { userId, cpf, crf }
     });

@@ -8,11 +8,13 @@ generator client {
 }
 
 model User {
-  id       String @id @default(uuid())
-  name     String
-  email    String @unique
-  password String
-  role     String @default("USER")
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   professional Professional?
   patient      Patient?
@@ -20,7 +22,7 @@ model User {
 
 model Professional {
   id        String   @id @default(uuid())
-  userId    String   @unique
+  userId    Int      @unique
   cpf       String?  @unique
   crf       String?
   score     Float    @default(0)
@@ -30,11 +32,12 @@ model Professional {
   jornadas     Jornada[]
   escalas      Escala[]
   atendimentos Atendimento[]
+  checkins     Checkin[]
 }
 
 model Patient {
   id        String   @id @default(uuid())
-  userId    String   @unique
+  userId    Int      @unique
   createdAt DateTime @default(now())
 
   user         User          @relation(fields: [userId], references: [id])
@@ -59,10 +62,10 @@ model Jornada {
   regimeId       String
   dataInicio     DateTime?
   dataFim        DateTime?
-  inicio         String? // ex: "08:00"
-  fim            String? // ex: "17:00"
-  intervaloMin   Int? // minutos
-  tipo           String // DISPONIVEL, UTIL, INUTIL
+  inicio         String?
+  fim            String?
+  intervaloMin   Int?
+  tipo           String
 
   professional Professional @relation(fields: [professionalId], references: [id])
   regime       Regime       @relation(fields: [regimeId], references: [id])
@@ -79,6 +82,7 @@ model Plantao {
   escalas      Escala[]
   atividades   Atividade[]
   atendimentos Atendimento[]
+  checkins     Checkin[]
 }
 
 model Escala {
@@ -106,6 +110,7 @@ model Atendimento {
   professional Professional? @relation(fields: [professionalId], references: [id])
   plantao      Plantao?      @relation(fields: [plantaoId], references: [id])
   local        Local         @relation(fields: [localId], references: [id])
+
   atividades   Atividade[]
   pagamento    Pagamento?
   deslocamento Deslocamento?
@@ -116,9 +121,9 @@ model Atividade {
   atendimentoId   String?
   plantaoId       String?
   tipo            String
-  estado          String // PENDENTE, EXECUCAO, FINALIZADA, CANCELADA
+  estado          String
   duracaoPrevista Int?
-  duracaoReal     Int? // minutos
+  duracaoReal     Int?
 
   atendimento Atendimento? @relation(fields: [atendimentoId], references: [id])
   plantao     Plantao?     @relation(fields: [plantaoId], references: [id])
@@ -130,7 +135,7 @@ model Local {
   endereco  String
   latitude  Float
   longitude Float
-  tipo      String? // DOMICILIO, INSTITUICAO
+  tipo      String?
 
   pacientes    Patient[]
   plantoes     Plantao[]
@@ -171,4 +176,23 @@ model AuditLog {
   userId    String?
   timestamp DateTime @default(now())
   payload   Json?
+}
+
+model Checkin {
+  id                String    @id @default(uuid())
+  profissionalId    String
+  plantaoId         String
+  latitude          Float
+  longitude         Float
+  observacao        String?
+  checkinAt         DateTime  @default(now())
+  checkoutAt        DateTime?
+  checkoutLatitude  Float?
+  checkoutLongitude Float?
+
+  profissional Professional @relation(fields: [profissionalId], references: [id])
+  plantao      Plantao      @relation(fields: [plantaoId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
