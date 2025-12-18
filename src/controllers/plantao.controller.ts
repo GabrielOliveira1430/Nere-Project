@@ -1,58 +1,59 @@
-// src/controllers/plantao.controller.ts
-import { Request, Response } from "express";
-import { PlantaoService } from "../services/plantao.service";
+// src/controllers/PlantaoController.ts
+import { Response } from "express";
+import { AuthRequest } from "../middlewares/auth.middleware";
+import { PlantaoService } from "../../src/services/plantao.service";
+import { UserRole } from "@prisma/client";
 
 const service = new PlantaoService();
 
 export class PlantaoController {
-  async create(req: Request, res: Response) {
+  async create(req: AuthRequest, res: Response) {
     try {
-      const data = req.body;
-      const p = await service.create(data);
-      res.status(201).json(p);
+      const result = await service.create(req.body);
+      return res.status(201).json(result);
     } catch (err: any) {
-      res.status(400).json({ message: err.message });
+      return res.status(400).json({ message: err.message });
     }
   }
 
-  async get(req: Request, res: Response) {
+  async update(req: AuthRequest, res: Response) {
+    try {
+      if (!req.user) throw new Error("Usuário não autenticado");
+      const { id } = req.params;
+      const result = await service.update(id, req.user.id, req.user.role, req.body);
+      return res.json(result);
+    } catch (err: any) {
+      return res.status(400).json({ message: err.message });
+    }
+  }
+
+  async remove(req: AuthRequest, res: Response) {
+    try {
+      if (!req.user) throw new Error("Usuário não autenticado");
+      const { id } = req.params;
+      const result = await service.remove(id, req.user.id, req.user.role);
+      return res.json(result);
+    } catch (err: any) {
+      return res.status(400).json({ message: err.message });
+    }
+  }
+
+  async getById(req: AuthRequest, res: Response) {
     try {
       const { id } = req.params;
-      const p = await service.get(id);
-      if (!p) return res.status(404).json({ message: "Plantão não encontrado" });
-      res.json(p);
+      const result = await service.getById(id);
+      return res.json(result);
     } catch (err: any) {
-      res.status(400).json({ message: err.message });
+      return res.status(404).json({ message: err.message });
     }
   }
 
-  async list(req: Request, res: Response) {
+  async list(req: AuthRequest, res: Response) {
     try {
-      const list = await service.list();
-      res.json(list);
+      const result = await service.list();
+      return res.json(result);
     } catch (err: any) {
-      res.status(400).json({ message: err.message });
-    }
-  }
-
-  async update(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-      const data = req.body;
-      const p = await service.update(id, data);
-      res.json(p);
-    } catch (err: any) {
-      res.status(400).json({ message: err.message });
-    }
-  }
-
-  async remove(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-      await service.remove(id);
-      res.json({ message: "Removido" });
-    } catch (err: any) {
-      res.status(400).json({ message: err.message });
+      return res.status(400).json({ message: err.message });
     }
   }
 }

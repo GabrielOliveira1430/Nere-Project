@@ -5,15 +5,22 @@ import { authMiddleware, AuthRequest } from "../middlewares/auth.middleware";
 const router = Router();
 const controller = new AuthController();
 
-// ROTAS DE AUTENTICAÇÃO
-router.post("/register", (req, res) => controller.register(req, res));
-router.post("/login", (req, res) => controller.login(req, res));
+//////////////////////
+// ROTAS PÚBLICAS
+//////////////////////
 
-// 🔥 ROTA PARA TESTAR TOKEN
+router.post("/register", controller.register);
+router.post("/login", controller.login);
+
+//////////////////////
+// ROTAS PROTEGIDAS
+//////////////////////
+
+// 🔥 TESTE DE AUTENTICAÇÃO
 router.get("/me", authMiddleware, (req: AuthRequest, res) => {
-  return res.json({
-    message: "Token válido!",
-    user: req.user, // agora não dá erro ✔
+  return res.status(200).json({
+    message: "Token válido",
+    user: req.user,
   });
 });
 

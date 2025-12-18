@@ -7,12 +7,54 @@ generator client {
   provider = "prisma-client-js"
 }
 
+//////////////////////
+// ENUMS
+//////////////////////
+
+enum UserRole {
+  ADMIN
+  PROFISSIONAL
+  PACIENTE
+}
+
+enum EstadoAtividade {
+  PENDENTE
+  EM_EXECUCAO
+  CONCLUIDA
+}
+
+enum StatusAtendimento {
+  PENDENTE
+  ALOCADO
+  EM_EXECUCAO
+  CONCLUIDO
+  CANCELADO
+}
+
+enum StatusPlantao {
+  PENDENTE
+  CONFIRMADO
+  CANCELADO
+}
+
+enum StatusPagamento {
+  PENDENTE
+  PROCESSADO
+  PAGO
+  CANCELADO
+}
+
+//////////////////////
+// USER / AUTH
+//////////////////////
+
 model User {
   id        Int      @id @default(autoincrement())
   name      String
   email     String   @unique
   password  String
-  role      String
+  role      UserRole @default(PROFISSIONAL)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -20,33 +62,58 @@ model User {
   patient      Patient?
 }
 
+//////////////////////
+// PROFESSIONAL
+//////////////////////
+
 model Professional {
   id     String @id @default(uuid())
   userId Int    @unique
 
-  cpf String?
-  crf String?
-  score Int? 
+  cpf   String?
+  crf   String?
+  score Int?
 
-  user        User          @relation(fields: [userId], references: [id])
-  jornadas    Jornada[]
-  plantoes    Plantao[]
-  trackings   Tracking[]
-  checkins    Checkin[]
-  Escala      Escala[]
-  Atendimento Atendimento[]
+  user         User          @relation(fields: [userId], references: [id])
+  jornadas     Jornada[]
+  plantoes     Plantao[]
+  checkins     Checkin[]
+  trackings    Tracking[]
+  escalas      Escala[]
+  atendimentos Atendimento[]
 }
 
+//////////////////////
+// PATIENT
+//////////////////////
 
 model Patient {
   id        String   @id @default(uuid())
   userId    Int      @unique
   createdAt DateTime @default(now())
 
-  user         User          @relation(fields: [userId], references: [id])
-  locais       Local[]
+  user         User           @relation(fields: [userId], references: [id])
   atendimentos Atendimento[]
+  locais       PatientLocal[]
 }
+
+//////////////////////
+// RELAÇÃO N:N PATIENT <-> LOCAL
+//////////////////////
+
+model PatientLocal {
+  patientId String
+  localId   String
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  local   Local   @relation(fields: [localId], references: [id], onDelete: Cascade)
+
+  @@id([patientId, localId])
+}
+
+//////////////////////
+// REGIME / JORNADA
+//////////////////////
 
 model Regime {
   id             String  @id @default(uuid())
@@ -63,35 +130,41 @@ model Jornada {
   id             String    @id @default(uuid())
   professionalId String
   regimeId       String
-  dataInicio     DateTime?
-  dataFim        DateTime?
-  inicio         String?
-  fim            String?
-  intervaloMin   Int?
-  tipo           String
+
+  dataInicio   DateTime?
+  dataFim      DateTime?
+  inicio       String?
+  fim          String?
+  intervaloMin Int?
+  tipo         String
 
   professional Professional @relation(fields: [professionalId], references: [id])
   regime       Regime       @relation(fields: [regimeId], references: [id])
-  plantoes     Plantao[]
+
+  plantoes Plantao[]
 }
 
+//////////////////////
+// PLANTÃO / ESCALA
+//////////////////////
+
 model Plantao {
-  id             String   @id @default(uuid())
+  id             String        @id @default(uuid())
   jornadaId      String
   profissionalId String?
   data           DateTime
-  status         String   @default("PENDENTE")
+  status         StatusPlantao @default(PENDENTE)
+  localId        String?
 
   jornada      Jornada       @relation(fields: [jornadaId], references: [id])
   profissional Professional? @relation(fields: [profissionalId], references: [id])
+  local        Local?        @relation(fields: [localId], references: [id])
 
   atendimentos Atendimento[]
   checkins     Checkin[]
   trackings    Tracking[]
   escalas      Escala[]
-  Atividade    Atividade[]
-  Local        Local?        @relation(fields: [localId], references: [id])
-  localId      String?
+  atividades   Atividade[]
 }
 
 model Escala {
@@ -101,42 +174,64 @@ model Escala {
 
   plantao      Plantao      @relation(fields: [plantaoId], references: [id])
   professional Professional @relation(fields: [professionalId], references: [id])
+
+  @@unique([plantaoId, professionalId])
 }
 
+//////////////////////
+// ATENDIMENTO
+//////////////////////
+
 model Atendimento {
-  id             String    @id @default(uuid())
+  id             String            @id @default(uuid())
   pacienteId     String
   professionalId String?
   plantaoId      String?
-  status         String
+  status         StatusAtendimento @default(PENDENTE)
+
   inicioPrevisto DateTime
   fimPrevisto    DateTime
   inicioReal     DateTime?
   fimReal        DateTime?
-  localId        String
 
-  paciente     Patient       @relation(fields: [pacienteId], references: [id])
-  professional Professional? @relation(fields: [professionalId], references: [id])
-  plantao      Plantao?      @relation(fields: [plantaoId], references: [id])
-  local        Local         @relation(fields: [localId], references: [id])
+  localId String
+
+  paciente     Patient        @relation(fields: [pacienteId], references: [id])
+  professional Professional?  @relation(fields: [professionalId], references: [id])
+  plantao      Plantao?       @relation(fields: [plantaoId], references: [id])
+  local        Local          @relation(fields: [localId], references: [id])
 
   atividades   Atividade[]
   pagamento    Pagamento?
   deslocamento Deslocamento?
 }
 
+//////////////////////
+// ATIVIDADE
+//////////////////////
+
 model Atividade {
-  id              String  @id @default(uuid())
+  id              String          @id @default(uuid())
+
   atendimentoId   String?
   plantaoId       String?
+
   tipo            String
-  estado          String
+  estado          EstadoAtividade @default(PENDENTE)
+
   duracaoPrevista Int?
   duracaoReal     Int?
 
-  atendimento Atendimento? @relation(fields: [atendimentoId], references: [id])
-  plantao     Plantao?     @relation(fields: [plantaoId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  atendimento Atendimento? @relation(fields: [atendimentoId], references: [id], onDelete: Cascade)
+  plantao     Plantao?     @relation(fields: [plantaoId], references: [id], onDelete: Cascade)
 }
+
+//////////////////////
+// LOCAL
+//////////////////////
 
 model Local {
   id        String  @id @default(uuid())
@@ -146,18 +241,24 @@ model Local {
   longitude Float
   tipo      String?
 
-  pacientes    Patient[]
+  pacientes    PatientLocal[]
   plantoes     Plantao[]
   atendimentos Atendimento[]
 }
 
+//////////////////////
+// DESLOCAMENTO
+//////////////////////
+
 model Deslocamento {
   id            String @id @default(uuid())
   atendimentoId String @unique
-  origemLat     Float
-  origemLon     Float
-  destinoLat    Float
-  destinoLon    Float
+
+  origemLat  Float
+  origemLon  Float
+  destinoLat Float
+  destinoLon Float
+
   tempoEstimado Int?
   tempoReal     Int?
   distancia     Float?
@@ -165,35 +266,37 @@ model Deslocamento {
   atendimento Atendimento @relation(fields: [atendimentoId], references: [id])
 }
 
+//////////////////////
+// PAGAMENTO
+//////////////////////
+
 model Pagamento {
-  id             String   @id @default(uuid())
-  atendimentoId  String   @unique
+  id             String          @id @default(uuid())
+  atendimentoId  String          @unique
+
   valorBruto     Float
   taxaPlataforma Float
   valorLiquido   Float
-  status         String
-  dataGeracao    DateTime @default(now())
+  status         StatusPagamento @default(PENDENTE)
+
+  dataGeracao DateTime @default(now())
 
   atendimento Atendimento @relation(fields: [atendimentoId], references: [id])
 }
 
-model AuditLog {
-  id        String   @id @default(uuid())
-  entity    String
-  entityId  String
-  action    String
-  userId    String?
-  timestamp DateTime @default(now())
-  payload   Json?
-}
+//////////////////////
+// CHECK-IN
+//////////////////////
 
 model Checkin {
-  id                String    @id @default(uuid())
+  id                String   @id @default(uuid())
   profissionalId    String
   plantaoId         String
+
   latitude          Float
   longitude         Float
   observacao        String?
+
   checkinAt         DateTime  @default(now())
   checkoutAt        DateTime?
   checkoutLatitude  Float?
@@ -206,17 +309,37 @@ model Checkin {
   updatedAt DateTime @updatedAt
 }
 
+//////////////////////
+// TRACKING
+//////////////////////
+
 model Tracking {
   id             String   @id @default(uuid())
   profissionalId String
   plantaoId      String
-  latitude       Float
-  longitude      Float
-  speed          Float?
-  bearing        Float?
-  accuracy       Float?
-  createdAt      DateTime @default(now())
+
+  latitude  Float
+  longitude Float
+  speed     Float?
+  bearing   Float?
+  accuracy  Float?
+
+  createdAt DateTime @default(now())
 
   profissional Professional @relation(fields: [profissionalId], references: [id])
   plantao      Plantao      @relation(fields: [plantaoId], references: [id])
+}
+
+//////////////////////
+// AUDIT LOG
+//////////////////////
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  entity    String
+  entityId  String
+  action    String
+  userId    String?
+  timestamp DateTime @default(now())
+  payload   Json?
 }
